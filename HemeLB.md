@@ -63,6 +63,7 @@ make install
 **Critical Dependency Chain**: METIS requires GKLib, must specify `gklib_path`
 
 ### ParMETIS: Parallel Graph Partitioning
+####1. First, Load MPI Module or Set MPI Environment
 **Purpose**: MPI-parallel version of METIS for large-scale simulations
 ```bash
 git clone https://github.com/KarypisLab/ParMETIS.git

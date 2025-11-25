@@ -112,7 +112,7 @@ ccmake ..
 - Press `t`: Toggle advanced mode - shows all configuration options
 - Navigate with arrow keys, edit with Enter
 - Press `g`: Generate - creates Makefiles based on configuration
-
+## First, Load MPI Module
 **Critical CMake Variables to Set**:
 - `CMAKE_INSTALL_PREFIX`: Where HemeLB will be installed
 - `METIS_INCLUDE_DIR`: Path to METIS header files

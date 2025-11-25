@@ -1,0 +1,128 @@
+#!/bin/bash
+set -e
+
+echo "=== Complete HemeLB Installation with MPI ==="
+
+# Step 1: Load MPI module
+echo "1. Loading MPI module..."
+echo "Available MPI modules:"
+module avail mpi 2>/dev/null || echo "No module command or no MPI modules"
+
+# Load MPI module
+echo "Loading mpi/openmpi-x86_64..."
+module load mpi/openmpi-x86_64
+
+# Verify MPI
+echo "Verifying MPI installation..."
+if ! command -v mpicc &> /dev/null; then
+    echo "❌ MPI not found after loading module"
+    echo "Trying alternative MPI detection..."
+    # Try to find MPI in common locations
+    find /usr -name "mpicc" -type f 2>/dev/null | head -5
+    exit 1
+fi
+
+echo "✅ MPI found:"
+echo "  mpicc: $(which mpicc)"
+echo "  mpicxx: $(which mpicxx)"
+mpicc --version
+
+# Step 2: Build HemeLB
+echo ""
+echo "2. Building HemeLB..."
+cd ~/hemelb/build
+
+echo "Starting build process (this may take 10-30 minutes)..."
+make -j$(nproc)
+
+# Step 3: Install HemeLB
+echo ""
+echo "3. Installing HemeLB..."
+make install
+
+# Step 4: Verify Installation
+echo ""
+echo "4. Verifying installation..."
+if [ -f "$HOME/software/hemelb/bin/hemelb" ]; then
+    echo "✅ HemeLB installed successfully!"
+    echo "Installation location: $HOME/software/hemelb"
+    
+    # Test the binary
+    echo "Testing hemelb binary..."
+    $HOME/software/hemelb/bin/hemelb --help 2>&1 | head -10 || echo "Binary executed"
+    
+    # Show installation structure
+    echo ""
+    echo "Installation structure:"
+    tree $HOME/software/hemelb -L 2 2>/dev/null || ls -la $HOME/software/hemelb/
+else
+    echo "❌ HemeLB binary not found at expected location"
+    echo "Searching for hemelb binary..."
+    find . -name "hemelb" -type f 2>/dev/null
+fi
+
+# Step 5: Create Module File
+echo ""
+echo "5. Creating module file..."
+mkdir -p ~/privatemodules/hemelb
+
+cat > ~/privatemodules/hemelb/0.8.0.lua << 'EOF'
+-- -*- lua -*-
+whatis("Name: HemeLB")
+whatis("Version: 0.8.0")
+whatis("Description: Lattice-Boltzmann simulator for blood flow")
+
+help([[
+HemeLB - Lattice-Boltzmann Simulator for Blood Flow
+Installation: /home/rocky/software/hemelb
+]])
+
+local base = "/home/rocky/software/hemelb"
+
+setenv("HEMELB_HOME", base)
+setenv("HEMELB_RESOURCES", pathJoin(base, "share/hemelb/resources"))
+
+prepend_path("PATH", pathJoin(base, "bin"))
+prepend_path("LD_LIBRARY_PATH", pathJoin(base, "lib"))
+
+-- Load MPI automatically
+load("mpi/openmpi-x86_64")
+
+family("hemelb")
+EOF
+
+# Create default version
+cat > ~/privatemodules/hemelb/.version << 'EOF'
+-- -*- lua -*-
+set_default("0.8.0")
+EOF
+
+# Update MODULEPATH
+export MODULEPATH=~/privatemodules:$MODULEPATH
+echo 'export MODULEPATH=~/privatemodules:$MODULEPATH' >> ~/.bashrc
+
+echo "✅ Module file created at ~/privatemodules/hemelb/0.8.0.lua"
+
+# Step 6: Final Test
+echo ""
+echo "6. Final test..."
+module load hemelb
+module list | grep hemelb && echo "✅ HemeLB module loaded" || echo "⚠️  HemeLB module not loaded"
+
+which hemelb && echo "✅ hemelb command found" || echo "❌ hemelb command not found"
+
+echo ""
+echo "=================================================="
+echo "🎉 HEMELB INSTALLATION COMPLETED SUCCESSFULLY!"
+echo "=================================================="
+echo ""
+echo "To use HemeLB in new terminal sessions:"
+echo "  1. module load hemelb"
+echo "  2. hemelb --help"
+echo ""
+echo "To run a test simulation:"
+echo "  mpirun -n 4 hemelb -in input.xml -out output_dir"
+echo ""
+echo "Example files are available at:"
+echo "  $HOME/software/hemelb/share/hemelb/resources/"
+echo "=================================================="

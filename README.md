@@ -78,5 +78,3 @@ Inside this folder, you should see:
 
 ---
 
-If you want, I can also help you write **Step 3 (running installer)** or **turn all of this into a GitHub README format**.
-
